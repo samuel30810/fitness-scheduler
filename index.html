@@ -518,16 +518,10 @@ function updateOutput() {
   const el=document.getElementById('outputText');
   if(days.length===0){el.textContent='（尚未選擇時段）'; el.className='output-text empty'; return;}
 
-  const rangeMap={};
+  const lines=[];
   days.forEach(date => {
     const range=timesToRange(map[date].sort());
-    if(!rangeMap[range]) rangeMap[range]=[];
-    rangeMap[range].push(date);
-  });
-
-  const lines=[];
-  Object.entries(rangeMap).sort().forEach(([range,dates]) => {
-    lines.push(dates.map(d=>`${d}(${getDayName(d)})`).join('、')+' '+range);
+    lines.push(`${date}(${getDayName(date)}) ${range}`);
   });
 
   const plan=plans.find(p=>p.id===activePlanId);
