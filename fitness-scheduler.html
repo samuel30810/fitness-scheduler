@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健身排課工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222;
+    --border: #2a2a2a;
+    --accent: #c8f135;
+    --accent-dim: rgba(200,241,53,0.13);
+    --text: #e8e8e8;
+    --text-dim: #666;
+    --orange: #ff6b35;
+    --orange-dim: rgba(255,107,53,0.13);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .week-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  /* ── Week nav ── */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .week-nav button, button.small {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .week-nav button:hover, button.small:hover { border-color: var(--accent); color: var(--accent); }
+  .week-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ── Plans ── */
+  .plans-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .plans-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .plan-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 30px;
+  }
+  .plan-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: transparent;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .plan-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .plan-chip.active {
+    border-color: var(--accent);
+    color: #0f0f0f;
+    background: var(--accent);
+    font-weight: 500;
+  }
+  .plan-chip .del-btn {
+    font-size: 15px; line-height: 1; opacity: 0.45; cursor: pointer;
+  }
+  .plan-chip .del-btn:hover { opacity: 1; }
+  .plan-chip.active .del-btn { color: #0f0f0f; }
+  .no-plans { font-size: 12px; color: var(--text-dim); padding: 4px 0; }
+
+  .plan-editor {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .plan-editor.open { display: block; }
+  .plan-editor-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .plan-editor label { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .plan-editor input[type="text"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    flex: 1;
+    min-width: 160px;
+  }
+  .plan-editor input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .plan-editor-hint { font-size: 11px; color: var(--text-dim); line-height: 1.6; margin-top: 4px; }
+
+  /* ── Status ── */
+  .status-bar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .badge.ok { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* ── Double day ── */
+  .double-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-dim);
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  select.inline-sel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* ── Grid ── */
+  .grid-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  table { border-collapse: collapse; min-width: 540px; width: 100%; }
+  thead th {
+    background: var(--surface);
+    padding: 8px 6px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    white-space: nowrap;
+  }
+  thead th.time-col {
+    color: var(--text-dim); width: 54px; min-width: 54px; border-right: 1px solid var(--border);
+  }
+  thead th.day-header { color: var(--text); min-width: 66px; }
+  thead th.day-header .date-num { font-size: 14px; color: var(--accent); display: block; }
+  thead th.day-header .day-name { font-size: 10px; color: var(--text-dim); }
+  thead th.day-header.today { background: var(--accent-dim); }
+
+  td { border-bottom: 1px solid var(--border); padding: 0; height: 36px; }
+  td.time-cell {
+    border-right: 1px solid var(--border);
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  td.slot {
+    cursor: pointer;
+    transition: background 0.1s;
+    text-align: center;
+    vertical-align: middle;
+    border-right: 1px solid var(--border);
+    font-size: 14px;
+  }
+  td.slot:last-child { border-right: none; }
+  td.slot:hover { background: var(--accent-dim); }
+  td.slot.selected { background: rgba(200,241,53,0.18); color: var(--accent); }
+  td.slot.selected::after { content: '✓'; font-weight: 700; }
+  td.slot.double-day.selected { background: var(--orange-dim); color: var(--orange); }
+
+  /* ── Output ── */
+  .output-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .output-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    line-height: 1.9;
+    min-height: 44px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .output-text.empty { color: var(--text-dim); font-size: 12px; }
+  .output-plan-line { color: var(--text-dim) !important; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button.action {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 7px 18px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button.action.primary {
+    background: var(--accent); border-color: var(--accent); color: #0f0f0f; font-weight: 500;
+  }
+  button.action.primary:hover { opacity: 0.85; }
+  button.action.secondary {
+    background: transparent; border-color: var(--border); color: var(--text-dim);
+  }
+  button.action.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .copied-toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--accent); color: #0f0f0f;
+    padding: 9px 18px; border-radius: 6px;
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+    opacity: 0; transform: translateY(8px);
+    transition: all 0.2s; pointer-events: none; z-index: 999;
+  }
+  .copied-toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏋️ 排課工具</h1>
+  <span class="week-label" id="weekLabel"></span>
+</header>
+
+<!-- Plans -->
+<div class="plans-section">
+  <div class="plans-header">
+    <div class="section-label">排課方案</div>
+    <button class="small" id="addPlanBtn">＋ 新增方案</button>
+  </div>
+  <div class="plan-chips" id="planChips"></div>
+  <div class="plan-editor" id="planEditor">
+    <div class="plan-editor-row">
+      <label>名稱</label>
+      <input type="text" id="planName" placeholder="例：3天4堂" maxlength="20">
+      <label>附加文字</label>
+      <input type="text" id="planDesc" placeholder="例：可以排三天，其中一天可以排兩堂" maxlength="100">
+    </div>
+    <div class="plan-editor-hint">附加文字會出現在複製內容的最後一行，留空則不附加。</div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="action primary" id="savePlanBtn">儲存</button>
+      <button class="action secondary" id="cancelPlanBtn">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Week nav -->
+<div class="week-nav">
+  <button id="prevWeek">← 上週</button>
+  <span class="week-display" id="weekDisplay"></span>
+  <button id="nextWeek">下週 →</button>
+  <button id="resetBtn" style="margin-left:auto">清除全部</button>
+</div>
+
+<!-- Double day -->
+<div class="double-row">
+  <span>兩堂的那天：</span>
+  <select class="inline-sel" id="doubleDay">
+    <option value="">（不設定）</option>
+  </select>
+  <span style="color:#3a3a3a">— 這天格子會以橘色顯示</span>
+</div>
+
+<!-- Status -->
+<div class="status-bar">
+  <span class="badge" id="badge-days">已選 0 天</span>
+  <span class="badge" id="badge-slots">共 0 堂</span>
+  <span class="badge" id="badge-plan">未選方案</span>
+</div>
+
+<!-- Grid -->
+<div class="grid-wrapper">
+  <table id="scheduleTable">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<!-- Output -->
+<div class="output-section">
+  <div class="section-label" style="margin-bottom:10px">複製內容</div>
+  <div id="outputText" class="output-text empty">（尚未選擇時段）</div>
+  <div class="btn-row">
+    <button class="action primary" id="copyBtn">📋 複製</button>
+    <button class="action secondary" id="clearSelBtn">清除選擇</button>
+  </div>
+</div>
+
+<div class="copied-toast" id="toast">已複製！</div>
+
+<script>
+const DAY_NAMES = ['日','一','二','三','四','五','六'];
+const TIME_SLOTS = [];
+for (let h = 15; h <= 21; h++) TIME_SLOTS.push(String(h).padStart(2,'0') + '00');
+
+let weekOffset = 0;
+let selected = {};
+let doubleDay = '';
+let activePlanId = null;
+
+// ── Plans ──
+const STORAGE_KEY = 'fitness_plans_v2';
+function loadPlans() {
+  try { const r = localStorage.getItem(STORAGE_KEY); if (r) return JSON.parse(r); } catch(e){}
+  return [
+    { id:'p1', name:'3天4堂', desc:'可以排三天，其中一天可以排兩堂，其他可以排一堂' },
+    { id:'p2', name:'2天2堂', desc:'可以排兩天，每天各一堂' },
+  ];
+}
+function savePlans() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(plans)); } catch(e){}
+}
+let plans = loadPlans();
+
+function renderPlans() {
+  const c = document.getElementById('planChips');
+  c.innerHTML = '';
+  if (plans.length === 0) {
+    c.innerHTML = '<span class="no-plans">尚無方案，點右上角新增</span>';
+    return;
+  }
+  plans.forEach(p => {
+    const chip = document.createElement('button');
+    chip.className = 'plan-chip' + (activePlanId === p.id ? ' active' : '');
+    chip.innerHTML = `${p.name}<span class="del-btn" data-id="${p.id}">×</span>`;
+    chip.addEventListener('click', e => {
+      if (e.target.classList.contains('del-btn')) {
+        if (!confirm(`刪除方案「${p.name}」？`)) return;
+        plans = plans.filter(x => x.id !== p.id);
+        savePlans();
+        if (activePlanId === p.id) { activePlanId = null; }
+        renderPlans(); updateOutput(); updateStatus();
+        return;
+      }
+      activePlanId = (activePlanId === p.id) ? null : p.id;
+      renderPlans(); updateOutput(); updateStatus();
+    });
+    c.appendChild(chip);
+  });
+}
+
+document.getElementById('addPlanBtn').addEventListener('click', () => {
+  document.getElementById('planName').value = '';
+  document.getElementById('planDesc').value = '';
+  document.getElementById('planEditor').classList.add('open');
+  document.getElementById('planName').focus();
+});
+document.getElementById('cancelPlanBtn').addEventListener('click', () => {
+  document.getElementById('planEditor').classList.remove('open');
+});
+document.getElementById('savePlanBtn').addEventListener('click', () => {
+  const name = document.getElementById('planName').value.trim();
+  const desc = document.getElementById('planDesc').value.trim();
+  if (!name) { document.getElementById('planName').focus(); return; }
+  plans.push({ id: 'p' + Date.now(), name, desc });
+  savePlans();
+  renderPlans();
+  document.getElementById('planEditor').classList.remove('open');
+});
+
+// ── Week ──
+function getWeekDates(offset) {
+  const today = new Date();
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - today.getDay() + offset*7);
+  return Array.from({length:7}, (_,i) => { const d=new Date(sunday); d.setDate(sunday.getDate()+i); return d; });
+}
+function fmt(d) { return String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+function fmtFull(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
+function isToday(d) { const t=new Date(); return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); }
+
+function buildTable() {
+  const days = getWeekDates(weekOffset);
+  const s=days[0], e=days[6];
+  document.getElementById('weekDisplay').textContent = `${s.getFullYear()}/${fmtFull(s)} – ${fmtFull(e)}`;
+  document.getElementById('weekLabel').textContent = weekOffset===0?'本週':weekOffset>0?`+${weekOffset}週`:`${weekOffset}週`;
+
+  const ddSel = document.getElementById('doubleDay');
+  const prev = doubleDay;
+  ddSel.innerHTML = '<option value="">（不設定）</option>';
+  days.forEach(d => {
+    const k=fmt(d), opt=document.createElement('option');
+    opt.value=k; opt.textContent=`${k}(${DAY_NAMES[d.getDay()]})`;
+    if(k===prev) opt.selected=true;
+    ddSel.appendChild(opt);
+  });
+
+  const head = document.getElementById('tableHead');
+  head.innerHTML='';
+  const htr=document.createElement('tr');
+  const th0=document.createElement('th'); th0.className='time-col'; th0.textContent='時間'; htr.appendChild(th0);
+  days.forEach(d => {
+    const th=document.createElement('th');
+    th.className='day-header'+(isToday(d)?' today':'');
+    th.innerHTML=`<span class="date-num">${fmt(d)}</span><span class="day-name">(${DAY_NAMES[d.getDay()]})</span>`;
+    htr.appendChild(th);
+  });
+  head.appendChild(htr);
+
+  const body = document.getElementById('tableBody');
+  body.innerHTML='';
+  TIME_SLOTS.forEach(slot => {
+    const tr=document.createElement('tr');
+    const tc=document.createElement('td'); tc.className='time-cell';
+    tc.textContent=slot.slice(0,2)+':'+slot.slice(2); tr.appendChild(tc);
+    days.forEach(d => {
+      const td=document.createElement('td');
+      const key=fmt(d)+'-'+slot;
+      td.className='slot'+(doubleDay===fmt(d)?' double-day':'');
+      if(selected[key]) td.classList.add('selected');
+      td.addEventListener('click', () => {
+        if(selected[key]){delete selected[key]; td.classList.remove('selected');}
+        else{selected[key]=true; td.classList.add('selected');}
+        updateOutput(); updateStatus();
+      });
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+// ── Output ──
+function groupByDay() {
+  const map={};
+  Object.keys(selected).sort().forEach(k => {
+    const [date,time]=k.split('-');
+    if(!map[date]) map[date]=[];
+    map[date].push(time);
+  });
+  return map;
+}
+function getDayName(mmdd) {
+  const today=new Date(), mm=parseInt(mmdd.slice(0,2)), dd=parseInt(mmdd.slice(2,4));
+  return DAY_NAMES[new Date(today.getFullYear(),mm-1,dd).getDay()];
+}
+function timesToRange(times) {
+  const s=[...times].sort();
+  return `${s[0]}-${String(parseInt(s[s.length-1].slice(0,2))+1).padStart(2,'0')}00`;
+}
+
+function updateOutput() {
+  const map=groupByDay(), days=Object.keys(map).sort();
+  const el=document.getElementById('outputText');
+  if(days.length===0){el.textContent='（尚未選擇時段）'; el.className='output-text empty'; return;}
+
+  const rangeMap={};
+  days.forEach(date => {
+    const range=timesToRange(map[date].sort());
+    if(!rangeMap[range]) rangeMap[range]=[];
+    rangeMap[range].push(date);
+  });
+
+  const lines=[];
+  Object.entries(rangeMap).sort().forEach(([range,dates]) => {
+    lines.push(dates.map(d=>`${d}(${getDayName(d)})`).join('、')+' '+range);
+  });
+
+  const plan=plans.find(p=>p.id===activePlanId);
+  if(plan&&plan.desc) lines.push(plan.desc);
+
+  el.className='output-text';
+  // Render with plan line in different color
+  el.innerHTML='';
+  const mainLines = plan&&plan.desc ? lines.slice(0,-1) : lines;
+  const mainSpan = document.createElement('span');
+  mainSpan.textContent = mainLines.join('\n');
+  el.appendChild(mainSpan);
+  if(plan&&plan.desc){
+    const br=document.createTextNode('\n');
+    const planSpan=document.createElement('span');
+    planSpan.className='output-plan-line';
+    planSpan.style.color='var(--text-dim)';
+    planSpan.textContent=plan.desc;
+    el.appendChild(br);
+    el.appendChild(planSpan);
+  }
+}
+
+function updateStatus() {
+  const map=groupByDay();
+  const dc=Object.keys(map).length, sc=Object.keys(selected).length;
+  const db=document.getElementById('badge-days'), sb=document.getElementById('badge-slots'), pb=document.getElementById('badge-plan');
+  db.textContent=`已選 ${dc} 天`; db.className='badge'+(dc>0?' ok':'');
+  sb.textContent=`共 ${sc} 堂`; sb.className='badge'+(sc>0?' ok':'');
+  const plan=plans.find(p=>p.id===activePlanId);
+  if(plan){pb.textContent=`方案：${plan.name}`; pb.className='badge ok';}
+  else{pb.textContent='未選方案'; pb.className='badge';}
+}
+
+document.getElementById('prevWeek').addEventListener('click',()=>{weekOffset--;buildTable();updateOutput();updateStatus();});
+document.getElementById('nextWeek').addEventListener('click',()=>{weekOffset++;buildTable();updateOutput();updateStatus();});
+document.getElementById('resetBtn').addEventListener('click',()=>{selected={};buildTable();updateOutput();updateStatus();});
+document.getElementById('clearSelBtn').addEventListener('click',()=>{selected={};buildTable();updateOutput();updateStatus();});
+document.getElementById('doubleDay').addEventListener('change',e=>{doubleDay=e.target.value;buildTable();updateOutput();updateStatus();});
+
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  // Copy plain text (strip HTML)
+  const el=document.getElementById('outputText');
+  const text=el.innerText||el.textContent;
+  if(!text||text.startsWith('（')) return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const toast=document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'),1800);
+  });
+});
+
+renderPlans();
+buildTable();
+updateOutput();
+updateStatus();
+</script>
+</body>
+</html>
